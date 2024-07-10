@@ -1,0 +1,9 @@
+default:
+  groups:
+rules:
+  admin.bar.io:
+    groups:
+      - restricted-group
+  "*.bar.io":
+    groups:
+      - regular-group

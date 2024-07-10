@@ -83,6 +83,25 @@ func TestConfigAuthorizerMatching(t *testing.T) {
 				{"foo.bar.io", false, user("match", "baz@bar.go")},
 			},
 		},
+		{
+			in: "./testdata/allowWildcardHost.yaml",
+			behavior: []matchTCase{
+				// *.bar.io tests -> require regular-group
+				{"foo.bar.io", false, user("nope1")},
+				{"foo.bar.io", false, user("another1", "another-group")},
+				{"foo.bar.io", true, user("user-match1", "regular-group")},
+				{"anotherfoo.bar.io", true, user("user-match2", "regular-group")},
+				{"yet.anotherfoo.bar.io", true, user("user-match3", "regular-group")},
+				// admin.bar.io tests -> require restricted-group
+				{"admin.bar.io", false, user("regular4", "regular-group")},
+				{"admin.bar.io", true, user("restricted1", "restricted-group")},
+				// bar.io tests and other host should fail because of default rule
+				{"bar.io", false, user("another1", "another-group")},
+				{"bar.io", false, user("regular1", "regular-group")},
+				{"bar.io", false, user("restricted1", "restricted-group")},
+				{"unknown host", false, user("nope1")},
+			},
+		},
 	}
 
 	for _, tcase := range tests {

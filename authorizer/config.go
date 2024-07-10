@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,11 +41,10 @@ func (h HostRule) Matcher() ruleMatcher {
 }
 
 type configAuthorizer struct {
-	config         *AuthzConfig
-	path           string
-	groupMatcher   map[string]ruleMatcher
-	defaultMatcher ruleMatcher
-	lock           sync.RWMutex
+	config       *AuthzConfig
+	path         string
+	groupMatcher map[string]ruleMatcher
+	lock         sync.RWMutex
 }
 
 func watchLoop(watcher *fsnotify.Watcher, path string, do func() error) error {
@@ -136,12 +136,12 @@ func (ca *configAuthorizer) loadConfig() error {
 	if authzConfig.DefaultRule != nil {
 		defaultMatcher = authzConfig.DefaultRule.Matcher()
 	}
+	groupMatcher["*"] = defaultMatcher
 
 	log.Infof("loaded AuthzConfig: %+v", *authzConfig)
 	ca.lock.Lock()
 	defer ca.lock.Unlock()
 	ca.groupMatcher = groupMatcher
-	ca.defaultMatcher = defaultMatcher
 	ca.config = authzConfig
 	return nil
 }
@@ -181,22 +181,43 @@ func formatReason(authed bool, user, host, matched, reason string) string {
 
 func (ca *configAuthorizer) Authorize(r *http.Request, user *common.User) (bool, string, error) {
 	host := r.Host
+	hostPrefixes := hostWildcardPrefixes(host)
+
+	var (
+		hostMatcher ruleMatcher
+		ok          bool
+	)
 
 	ca.lock.RLock()
-	hostMatcher, ok := ca.groupMatcher[host]
-	defaultMatcher := ca.defaultMatcher
+	// Find the longest host matcher. First match is the one.
+	for _, h := range hostPrefixes {
+		if hostMatcher, ok = ca.groupMatcher[h]; ok {
+			break
+		}
+	}
 	ca.lock.RUnlock()
 
-	authed := false
-	reason := ""
-	if ok {
-		authed, reason = hostMatcher.Match(user)
-		reason = formatReason(authed, user.Name, host, host, reason)
-	} else {
-		authed, reason = defaultMatcher.Match(user)
-		reason = formatReason(authed, user.Name, host, "default", reason)
+	if !ok {
+		// WTF? This should never happen. But if it does, fail the authorize call.
+		return false, "", fmt.Errorf("no matcher found for host=%s", host)
 	}
 
+	authed, reason := hostMatcher.Match(user)
+	reason = formatReason(authed, user.Name, host, host, reason)
 	log.Infof("authorization: %v", reason)
 	return authed, reason, nil
+}
+
+func hostWildcardPrefixes(host string) []string {
+	hostPart := strings.Split(host, ".")
+	prefixes := make([]string, 0, len(hostPart)+2)
+	// The actual host
+	prefixes = append(prefixes, host)
+	// Followed by all the wildcard parent hosts
+	for i := 1; i < len(hostPart); i++ {
+		prefixes = append(prefixes, "*."+strings.Join(hostPart[i:], "."))
+	}
+	// And finally the root wildcard (i.e. default)
+	prefixes = append(prefixes, "*")
+	return prefixes
 }
