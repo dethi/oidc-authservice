@@ -1,6 +1,6 @@
 module github.com/arrikto/oidc-authservice
 
-go 1.18
+go 1.22
 
 require (
 	github.com/boltdb/bolt v1.3.1
