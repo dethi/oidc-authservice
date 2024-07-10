@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/arrikto/oidc-authservice/common"
 	goidc "github.com/coreos/go-oidc"
 	"github.com/pkg/errors"
-	"k8s.io/utils/strings/slices"
 )
 
 type jwtFromExtraProviderAuthenticator struct {
@@ -33,6 +33,7 @@ func NewJWTFromExtraProviderAuthenticator(
 				"provider URL is incorrect: %s",
 			providerURL.String())
 	}
+
 	if cookieName == "" {
 		return nil, errors.New(
 			"Error creating jwt from extra provider authenticator: cookie name is empty")
