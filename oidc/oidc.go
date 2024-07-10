@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -143,7 +143,7 @@ func GetUserInfo(ctx context.Context, provider Provider, token *oauth2.Token) (*
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

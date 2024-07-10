@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -134,7 +134,7 @@ func (e ExternalAuthorizer) doRequest(requestBody AuthorizationRequestBody) (cod
 		return 0, "", err
 	}
 	defer resp.Body.Close()
-	response, err := ioutil.ReadAll(resp.Body)
+	response, err := io.ReadAll(resp.Body)
 	if err != nil {
 		err = fmt.Errorf("error while reading the body: %w", err)
 		return 0, "", err

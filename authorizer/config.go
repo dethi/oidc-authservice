@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -160,7 +160,7 @@ func (ca *configAuthorizer) parse(raw []byte) (*AuthzConfig, error) {
 }
 
 func (ca *configAuthorizer) parseConfig(path string) (*AuthzConfig, error) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("error loading AuthzConfig file %q: %v", path, err)
 	}

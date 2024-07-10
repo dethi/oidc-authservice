@@ -2,8 +2,8 @@ package main
 
 import (
 	"html/template"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -97,7 +97,7 @@ func siteHandler(tmpl *template.Template, data interface{}) http.HandlerFunc {
 
 func listTemplates(dir string) ([]string, error) {
 	tmplPaths := []string{}
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}

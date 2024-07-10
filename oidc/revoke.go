@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -99,7 +99,7 @@ func revokeToken(ctx context.Context, revocationEndpoint string, token, tokenTyp
 		// According to RFC6749 (https://tools.ietf.org/html/rfc6749#section-5.2)
 		// the body should be in JSON, if we want to parse it in the future.
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return &common.RequestError{
 				Response: resp,

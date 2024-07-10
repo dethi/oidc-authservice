@@ -5,8 +5,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path"
 	"time"
 
@@ -100,7 +100,7 @@ func main() {
 	// Read custom CA bundle
 	var caBundle []byte
 	if c.CABundlePath != "" {
-		caBundle, err = ioutil.ReadFile(c.CABundlePath)
+		caBundle, err = os.ReadFile(c.CABundlePath)
 		if err != nil {
 			log.Fatalf("Could not read CA bundle path %s: %v", c.CABundlePath, err)
 		}
