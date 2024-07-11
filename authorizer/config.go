@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/arrikto/oidc-authservice/common"
+	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
-	fsnotify "gopkg.in/fsnotify/fsnotify.v1"
 	yaml "gopkg.in/yaml.v3"
 )
 
