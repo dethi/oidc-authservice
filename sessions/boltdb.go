@@ -5,7 +5,6 @@ import (
 
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/boltdb/bolt"
-	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/gorilla/sessions"
 	"github.com/pkg/errors"
 	"github.com/yosssi/boltstore/reaper"
@@ -25,7 +24,7 @@ type boltDBSessionStore struct {
 
 type existingDBEntry struct {
 	DB      *bolt.DB
-	buckets *hashset.Set
+	buckets map[string]struct{}
 }
 
 var existingDBs = map[string]*existingDBEntry{}
@@ -53,7 +52,7 @@ func newBoltDBSessionStore(path, bucket string, allowDBReuse bool) (*boltDBSessi
 		if !allowDBReuse {
 			return nil, errors.New("BoltDB instance is already used and allowDBReuse is false")
 		}
-		if existingDB.buckets.Contains(bucket) {
+		if _, ok := existingDB.buckets[bucket]; ok {
 			return nil, errors.New("BoltDB instance already has a bucket " +
 				"the same name used by another session store")
 		}
@@ -63,7 +62,7 @@ func newBoltDBSessionStore(path, bucket string, allowDBReuse bool) (*boltDBSessi
 		if err != nil {
 			return nil, err
 		}
-		existingDBs[path] = &existingDBEntry{DB: db, buckets: hashset.New()}
+		existingDBs[path] = &existingDBEntry{DB: db, buckets: make(map[string]struct{})}
 	}
 
 	// Create a session store backed by the given BoltDB instance
@@ -75,7 +74,7 @@ func newBoltDBSessionStore(path, bucket string, allowDBReuse bool) (*boltDBSessi
 	if err != nil {
 		return nil, err
 	}
-	existingDBs[path].buckets.Add(bucket)
+	existingDBs[path].buckets[bucket] = struct{}{}
 	// Invoke a reaper which checks and removes expired sessions periodically
 	quitC, doneC := reaper.Run(db, reaper.Options{BucketName: []byte(bucket)})
 	return &boltDBSessionStore{

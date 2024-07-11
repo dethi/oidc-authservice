@@ -8,7 +8,6 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/coreos/go-oidc v2.2.1+incompatible
-	github.com/emirpasic/gods v1.18.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.3.0
