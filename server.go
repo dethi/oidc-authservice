@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/arrikto/oidc-authservice/authenticators"
@@ -16,7 +17,6 @@ import (
 	"github.com/arrikto/oidc-authservice/sessions"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
-	"github.com/tevino/abool"
 )
 
 const (
@@ -591,10 +591,10 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 // readiness is the handler that checks if the authservice is ready for serving
 // requests.
 // Currently, it checks if the provider is nil, meaning that the setup hasn't finished yet.
-func readiness(isReady *abool.AtomicBool) http.HandlerFunc {
+func readiness(isReady *atomic.Bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code := http.StatusOK
-		if !isReady.IsSet() {
+		if !isReady.Load() {
 			code = http.StatusServiceUnavailable
 		}
 		w.WriteHeader(code)
@@ -610,7 +610,7 @@ func readiness(isReady *abool.AtomicBool) http.HandlerFunc {
 // live are in the same cluster and requests pass through the AuthService.
 // Allowing the whitelisted requests before OIDC is configured is necessary for
 // the OIDC discovery request to succeed.
-func (s *server) whitelistMiddleware(whitelist []string, isReady *abool.AtomicBool, verify bool) func(http.Handler) http.Handler {
+func (s *server) whitelistMiddleware(whitelist []string, isReady *atomic.Bool, verify bool) func(http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := common.RequestLogger(r, logModuleInfo)
@@ -635,7 +635,7 @@ func (s *server) whitelistMiddleware(whitelist []string, isReady *abool.AtomicBo
 				}
 			}
 			// If server is not ready, return 503.
-			if !isReady.IsSet() {
+			if !isReady.Load() {
 				common.ReturnMessage(w, http.StatusServiceUnavailable, "OIDC Setup is not complete yet.")
 				return
 			}

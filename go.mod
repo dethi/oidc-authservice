@@ -19,7 +19,6 @@ require (
 	github.com/rbcervilla/redisstore/v8 v8.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
-	github.com/tevino/abool v1.2.0
 	github.com/yosssi/boltstore v1.0.1-0.20150916121936-36632d491655
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
 	golang.org/x/net v0.27.0 // indirect

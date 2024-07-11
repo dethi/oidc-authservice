@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sync/atomic"
 	"time"
 
 	"github.com/arrikto/oidc-authservice/authenticators"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/patrickmn/go-cache"
-	"github.com/tevino/abool"
 )
 
 const CacheCleanupInterval = 10
@@ -53,9 +53,9 @@ func main() {
 
 	// Start readiness probe immediately
 	log.Infof("Starting readiness probe at %v", c.ReadinessProbePort)
-	isReady := abool.New()
+	var isReady atomic.Bool
 	go func() {
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", c.ReadinessProbePort), readiness(isReady)))
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", c.ReadinessProbePort), readiness(&isReady)))
 	}()
 
 	/////////////////////////////////////////////////////
@@ -69,8 +69,8 @@ func main() {
 	router.HandleFunc(c.RedirectURL.Path, s.callback).Methods(http.MethodGet)
 	router.HandleFunc(path.Join(c.AuthserviceURLPrefix.Path, SessionLogoutPath), s.logout).Methods(http.MethodPost)
 
-	router.PathPrefix(c.VerifyAuthURL.Path).Handler(s.whitelistMiddleware(c.SkipAuthURLs, isReady, true)(http.HandlerFunc(s.authenticate_no_login))).Methods(http.MethodGet)
-	router.PathPrefix("/").Handler(s.whitelistMiddleware(c.SkipAuthURLs, isReady, false)(http.HandlerFunc(s.authenticate_or_login)))
+	router.PathPrefix(c.VerifyAuthURL.Path).Handler(s.whitelistMiddleware(c.SkipAuthURLs, &isReady, true)(http.HandlerFunc(s.authenticate_no_login))).Methods(http.MethodGet)
+	router.PathPrefix("/").Handler(s.whitelistMiddleware(c.SkipAuthURLs, &isReady, false)(http.HandlerFunc(s.authenticate_or_login)))
 
 	// Start judge server
 	log.Infof("Starting judge server at %v:%v", c.Hostname, c.Port)
@@ -203,9 +203,6 @@ func main() {
 		}
 	}
 
-	// Set the server values.
-	// The isReady atomic variable should protect it from concurrency issues.
-
 	*s = server{
 		// TODO: Add support for Redis
 		store:                  store,
@@ -273,7 +270,7 @@ func main() {
 	)
 
 	// Setup complete, mark server ready
-	isReady.Set()
+	isReady.Store(true)
 
 	// Block until server exits
 	<-stopCh
