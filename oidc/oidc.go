@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,7 +14,6 @@ import (
 
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/coreos/go-oidc"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -83,7 +84,7 @@ func ParseUserInfo(body []byte) (*UserInfo, error) {
 
 	err := json.Unmarshal(body, &raw)
 	if err != nil {
-		return nil, errors.Errorf("oidc: fail to decode userinfo: %v", err)
+		return nil, fmt.Errorf("oidc: fail to decode userinfo: %w", err)
 	}
 
 	userInfo := &UserInfo{
@@ -98,13 +99,13 @@ func ParseUserInfo(body []byte) (*UserInfo, error) {
 	case string:
 		boolValue, err := strconv.ParseBool(ParsedEmailVerified)
 		if err != nil {
-			return nil, errors.Errorf("oidc: failed to decode the email_verified field of userinfo: %v", err)
+			return nil, fmt.Errorf("oidc: failed to decode the email_verified field of userinfo: %w", err)
 		}
 		userInfo.EmailVerified = boolValue
 	case nil:
 		userInfo.EmailVerified = false
 	default:
-		return nil, errors.Errorf("oidc: unsupported type for the email_verified field")
+		return nil, errors.New("oidc: unsupported type for the email_verified field")
 	}
 	userInfo.RawClaims = body
 
@@ -123,7 +124,7 @@ func GetUserInfo(ctx context.Context, provider Provider, token *oauth2.Token) (*
 		UserInfoURL string `json:"userinfo_endpoint"`
 	}{}
 	if err := provider.Claims(discoveryClaims); err != nil {
-		return nil, errors.Errorf("Error unmarshalling OIDC discovery document claims: %v", err)
+		return nil, fmt.Errorf("Error unmarshalling OIDC discovery document claims: %w", err)
 	}
 
 	userInfoURL := discoveryClaims.UserInfoURL
@@ -133,7 +134,7 @@ func GetUserInfo(ctx context.Context, provider Provider, token *oauth2.Token) (*
 
 	req, err := http.NewRequest("GET", userInfoURL, nil)
 	if err != nil {
-		return nil, errors.Errorf("oidc: create GET request: %v", err)
+		return nil, fmt.Errorf("oidc: create GET request: %w", err)
 	}
 
 	token.SetAuthHeader(req)
@@ -152,14 +153,14 @@ func GetUserInfo(ctx context.Context, provider Provider, token *oauth2.Token) (*
 		return nil, &common.RequestError{
 			Response: resp,
 			Body:     body,
-			Err:      errors.Errorf("oidc: Calling UserInfo endpoint failed. body: %s", body),
+			Err:      fmt.Errorf("oidc: Calling UserInfo endpoint failed. body: %s", body),
 		}
 	}
 
 	userInfo, err := ParseUserInfo(body)
 
 	if err != nil {
-		return nil, errors.Errorf("oidc: failed to parse userInfo body: %v", err)
+		return nil, fmt.Errorf("oidc: failed to parse userInfo body: %w", err)
 	}
 
 	return userInfo, nil

@@ -2,6 +2,7 @@ package authenticators
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/arrikto/oidc-authservice/common"
 	goidc "github.com/coreos/go-oidc"
-	"github.com/pkg/errors"
 )
 
 type jwtFromExtraProviderAuthenticator struct {

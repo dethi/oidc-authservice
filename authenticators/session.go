@@ -1,12 +1,13 @@
 package authenticators
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/arrikto/oidc-authservice/sessions"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -59,7 +60,7 @@ func (sa *SessionAuthenticator) Authenticate(w http.ResponseWriter, r *http.Requ
 
 	// Check if user session is valid
 	if err != nil {
-		return nil, false, errors.Wrap(err, "couldn't get user session")
+		return nil, false, fmt.Errorf("couldn't get user session: %w", err)
 	}
 	if session.IsNew {
 		logger.Info("Failed to retrieve a valid session")
@@ -89,10 +90,10 @@ func (sa *SessionAuthenticator) Authenticate(w http.ResponseWriter, r *http.Requ
 		if err != nil {
 			var reqErr *common.RequestError
 			if !errors.As(err, &reqErr) {
-				return nil, false, errors.Wrap(err, "UserInfo request failed unexpectedly")
+				return nil, false, fmt.Errorf("UserInfo request failed unexpectedly: %w", err)
 			}
 			if reqErr.Response.StatusCode != http.StatusUnauthorized {
-				return nil, false, errors.Wrapf(err, "UserInfo request with unexpected code '%d'", reqErr.Response.StatusCode)
+				return nil, false, fmt.Errorf("UserInfo request with unexpected code '%d': %w", reqErr.Response.StatusCode, err)
 			}
 			// Access token has expired
 			logger.Info("UserInfo token has expired")

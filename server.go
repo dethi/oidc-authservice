@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -16,7 +17,6 @@ import (
 	"github.com/arrikto/oidc-authservice/oidc"
 	"github.com/arrikto/oidc-authservice/sessions"
 	cache "github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -547,7 +547,7 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 	session, err := sessions.SessionForLogout(r, s.store, s.authHeader)
 	if err != nil {
 		logger.Errorf(err.Error())
-		var serr sessions.SessionError
+		var serr *sessions.SessionError
 		if errors.As(err, &serr) && serr.Code == sessions.SessionErrorUnauth {
 			w.WriteHeader(http.StatusUnauthorized)
 		} else {
@@ -568,7 +568,8 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 		logger.Errorf("Error revoking tokens: %v", err)
 		statusCode := http.StatusInternalServerError
 		// If the server returned 503, return it as well as the client might want to retry
-		if reqErr, ok := errors.Cause(err).(*common.RequestError); ok {
+		var reqErr *common.RequestError
+		if errors.As(err, &reqErr) {
 			if reqErr.Response.StatusCode == http.StatusServiceUnavailable {
 				statusCode = reqErr.Response.StatusCode
 			}

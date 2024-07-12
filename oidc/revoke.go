@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/arrikto/oidc-authservice/common"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -21,7 +21,7 @@ func RevocationEndpoint(p Provider) (string, error) {
 		RevocationEndpoint string `json:"revocation_endpoint"`
 	}{}
 	if err := p.Claims(&claims); err != nil {
-		return "", errors.Wrap(err, "Error unmarshalling provider doc into struct")
+		return "", fmt.Errorf("Error unmarshalling provider doc into struct: %w", err)
 	}
 	if claims.RevocationEndpoint == "" {
 		return "", errors.New("Provider doesn't have a revocation_endpoint")
@@ -38,7 +38,7 @@ func RevokeTokens(ctx context.Context, revocationEndpoint string, token *oauth2.
 		log.Info("Attempting to revoke refresh token...")
 		err := revokeToken(ctx, revocationEndpoint, token.RefreshToken, "refresh_token", clientID, clientSecret)
 		if err != nil {
-			return errors.Wrap(err, "Failed to revoke refresh token")
+			return fmt.Errorf("Failed to revoke refresh token: %w", err)
 		}
 		log.Info("Successfully revoked refresh token")
 	}
@@ -52,9 +52,9 @@ func RevokeTokens(ctx context.Context, revocationEndpoint string, token *oauth2.
 
 				err2 := json.Unmarshal(err.(*common.RequestError).Body, &bodyMap)
 				if err2 != nil {
-					err2 = errors.Wrap(err2, "Error while attempting to unmarshal the body of the request")
-					full_error := errors.New(err.Error() + err2.Error())
-					return errors.Wrap(full_error, "Error while attempting to revoke access token")
+					err2 = fmt.Errorf("Error while attempting to unmarshal the body of the request: %w", err2)
+					full_error := errors.Join(err, err2)
+					return fmt.Errorf("Error while attempting to revoke access token: %w", full_error)
 				}
 
 				if bodyMap["error"] == "unsupported_token_type" {
@@ -62,7 +62,7 @@ func RevokeTokens(ctx context.Context, revocationEndpoint string, token *oauth2.
 					return nil
 				}
 			}
-			return errors.Wrap(err, "Failed to revoke access token")
+			return fmt.Errorf("Failed to revoke access token: %w", err)
 		} else {
 			log.Info("Successfully revoked access token")
 		}
@@ -76,7 +76,7 @@ func RevokeTokens(ctx context.Context, revocationEndpoint string, token *oauth2.
 func revokeToken(ctx context.Context, revocationEndpoint string, token, tokenType, clientID, clientSecret string) error {
 	// Verify revocation_endpoint has https url
 	if !strings.HasPrefix(revocationEndpoint, "https") {
-		return errors.New(fmt.Sprintf("Revocation endpoint (%v) MUST use https", revocationEndpoint))
+		return fmt.Errorf("Revocation endpoint (%v) MUST use https", revocationEndpoint)
 	}
 	values := url.Values{}
 	values.Set("token", token)
@@ -92,7 +92,7 @@ func revokeToken(ctx context.Context, revocationEndpoint string, token, tokenTyp
 
 	resp, err := common.DoRequest(ctx, req)
 	if err != nil {
-		return errors.Wrap(err, "Error contacting revocation endpoint")
+		return fmt.Errorf("Error contacting revocation endpoint: %w", err)
 	}
 	if code := resp.StatusCode; code != 200 {
 		// Read body to include in error for debugging purposes.
@@ -104,13 +104,13 @@ func revokeToken(ctx context.Context, revocationEndpoint string, token, tokenTyp
 			return &common.RequestError{
 				Response: resp,
 				Body:     body,
-				Err:      errors.New(fmt.Sprintf("Revocation endpoint returned code %v, failed to read body: %v", code, err)),
+				Err:      fmt.Errorf("Revocation endpoint returned code %v, failed to read body: %v", code, err),
 			}
 		}
 		return &common.RequestError{
 			Response: resp,
 			Body:     body,
-			Err:      errors.New(fmt.Sprintf("Revocation endpoint returned code %v, server returned: %v", code, body)),
+			Err:      fmt.Errorf("Revocation endpoint returned code %v, server returned: %v", code, body),
 		}
 	}
 	return nil

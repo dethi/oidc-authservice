@@ -1,11 +1,12 @@
 package authenticators
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/arrikto/oidc-authservice/sessions"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -55,10 +56,10 @@ func (s *OpaqueTokenAuthenticator) Authenticate(w http.ResponseWriter, r *http.R
 	if err != nil {
 		var reqErr *common.RequestError
 		if !errors.As(err, &reqErr) {
-			return nil, false, errors.Wrap(err, "UserInfo request failed unexpectedly")
+			return nil, false, fmt.Errorf("UserInfo request failed unexpectedly: %w", err)
 		}
 
-		return nil, false, errors.Wrapf(err, "UserInfo request failed with code '%d'", reqErr.Response.StatusCode)
+		return nil, false, fmt.Errorf("UserInfo request failed with code '%d': %w", reqErr.Response.StatusCode, err)
 	}
 
 	// Retrieve the USERID_CLAIM and the GROUPS_CLAIM

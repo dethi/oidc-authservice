@@ -9,7 +9,6 @@ import (
 	"github.com/arrikto/oidc-authservice/common"
 
 	"github.com/gorilla/sessions"
-	"github.com/pkg/errors"
 	"github.com/yosssi/boltstore/shared"
 )
 
@@ -131,7 +130,7 @@ func revokeSession(ctx context.Context, w http.ResponseWriter,
 	session.Options.MaxAge = -1
 	r := &http.Request{}
 	if err := session.Save(r.WithContext(ctx), w); err != nil {
-		return errors.Wrap(err, "Couldn't delete user session")
+		return fmt.Errorf("Couldn't delete user session: %w", err)
 	}
 	return nil
 }

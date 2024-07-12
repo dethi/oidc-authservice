@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"errors"
 	"html/template"
 	"net/http"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )

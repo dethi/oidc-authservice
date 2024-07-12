@@ -4,13 +4,14 @@ package sessions
 
 import (
 	"encoding/gob"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -94,7 +95,7 @@ func CreateState(r *http.Request, w http.ResponseWriter,
 
 	err := session.Save(r, w)
 	if err != nil {
-		return "", errors.Wrap(err, "error trying to save session")
+		return "", fmt.Errorf("error trying to save session: %w", err)
 	}
 
 	// Cookie is persisted in ResponseWriter, make a request to parse it.
@@ -102,7 +103,7 @@ func CreateState(r *http.Request, w http.ResponseWriter,
 	tempReq.Header.Set("Cookie", w.Header().Get("Set-Cookie"))
 	c, err := tempReq.Cookie(oidcStateCookie)
 	if err != nil {
-		return "", errors.Wrap(err, "error trying to save session")
+		return "", fmt.Errorf("error trying to save session: %w", err)
 	}
 	return c.Value, nil
 }
@@ -128,7 +129,7 @@ func VerifyState(r *http.Request, w http.ResponseWriter,
 	// Get the state from the cookie the user-agent sent.
 	stateCookie, err := r.Cookie(oidcStateCookie)
 	if err != nil {
-		return nil, errors.Errorf("Missing cookie: '%s'", oidcStateCookie)
+		return nil, fmt.Errorf("Missing cookie: '%s'", oidcStateCookie)
 	}
 
 	// Confirm the two values match.
@@ -142,7 +143,7 @@ func VerifyState(r *http.Request, w http.ResponseWriter,
 	// Retrieve session from store. If it doesn't exist, it may have expired.
 	session, err := store.Get(r, oidcStateCookie)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	if session.IsNew {
 		return nil, errors.New("State value not found in store, maybe it expired")
@@ -152,7 +153,7 @@ func VerifyState(r *http.Request, w http.ResponseWriter,
 
 	// Revoke the session so that each state value can only be used once.
 	if err = revokeSession(r.Context(), w, session); err != nil {
-		return nil, errors.Wrap(err, "error revoking state session")
+		return nil, fmt.Errorf("error revoking state session: %w", err)
 	}
 	return &state, nil
 }

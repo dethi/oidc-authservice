@@ -1,12 +1,12 @@
 package sessions
 
 import (
+	"errors"
 	"os"
 
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/sessions"
-	"github.com/pkg/errors"
 	"github.com/yosssi/boltstore/reaper"
 	boltstore "github.com/yosssi/boltstore/store"
 )

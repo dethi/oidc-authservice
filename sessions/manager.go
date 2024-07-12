@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/arrikto/oidc-authservice/common"
 	"github.com/arrikto/oidc-authservice/oidc"
 	"github.com/gorilla/sessions"
-	"github.com/pkg/errors"
 
 	goidc "github.com/coreos/go-oidc"
 	"github.com/sirupsen/logrus"
@@ -109,7 +109,7 @@ func (s *SessionManager) TokenSource(ctx context.Context,
 
 	newToken, err := tokenSource.Token()
 	if err != nil {
-		return nil, false, errors.Errorf("oidc: get access token: %v", err)
+		return nil, false, fmt.Errorf("oidc: get access token: %w", err)
 	}
 
 	// Check if access token has been refreshed
@@ -161,7 +161,7 @@ func (s *SessionManager) RevokeOIDCSession(ctx context.Context, w http.ResponseW
 		err := oidc.RevokeTokens(tlsCfg.Context(ctx),
 			_revocationEndpoint, &token, s.oauth2Config.ClientID, s.oauth2Config.ClientSecret)
 		if err != nil {
-			return errors.Wrap(err, "Error revoking tokens")
+			return fmt.Errorf("Error revoking tokens: %w", err)
 		}
 		logger.WithField("userid", session.Values[UserSessionUserID].(string)).Info("Access/Refresh tokens revoked")
 	}

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,7 +19,6 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -501,11 +501,11 @@ func portForward(kind, namespace, name, hostPort, targetPort string, stopCh chan
 	select {
 	case <-stopCh:
 		if err := cmd.Process.Kill(); err != nil {
-			return errors.Wrap(err, "failed to kill process: %+v")
+			return fmt.Errorf("failed to kill process: %w", err)
 		}
 		return nil
 	case <-processExitedCh:
-		return errors.Errorf("Port-forward process exited unexpectedly, output: %s", output)
+		return fmt.Errorf("Port-forward process exited unexpectedly, output: %s", output)
 	}
 }
 

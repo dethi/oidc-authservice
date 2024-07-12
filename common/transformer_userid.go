@@ -2,9 +2,9 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"regexp"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,10 +28,12 @@ type UserIDTransformer struct {
 // replace the match with the provided value. If no matching rule is found, it
 // will return the original value.
 // For example using the rules:
-//   [
-//     {"matches" : "user1@domain\\.com", "replaces": "anotherUser" },
-//     {"matches" : "@domain\\.com", "replaces": "" }
-//   ]
+//
+//	[
+//	  {"matches" : "user1@domain\\.com", "replaces": "anotherUser" },
+//	  {"matches" : "@domain\\.com", "replaces": "" }
+//	]
+//
 // The userID `user@domain.com` will be transformed to `anotherUser`
 // based on the first rule.
 // The userID `user2@domain.com` will be transformed to `user2` based
@@ -58,11 +60,12 @@ func (uit *UserIDTransformer) Transform(userID string) string {
 // Decode creates a new UserIDTransformer using as input a JSON formatted
 // string for rules initialization.
 // The accepted JSON format is:
-// {
-//   [
-//     {"matches": "regex", "replaces": "value"}
-//   ]
-// }
+//
+//	{
+//	  [
+//	    {"matches": "regex", "replaces": "value"}
+//	  ]
+//	}
 func (uit *UserIDTransformer) Decode(value string) error {
 	var rules []userIDTransformationRule
 	var config []map[string]*json.RawMessage
@@ -86,12 +89,12 @@ func (uit *UserIDTransformer) Decode(value string) error {
 				rules = append(rules, &rule)
 			} else {
 				// If the required fields are missing, return an error.
-				return errors.Errorf("error unmarshalling UserID transformer" +
+				return errors.New("error unmarshalling UserID transformer" +
 					" JSON config, 'replaces' field is missing.")
 			}
 		} else {
 			// If no unmarshalling subtype is matched, return an error
-			return errors.Errorf("error unmarshalling UserID transformer" +
+			return errors.New("error unmarshalling UserID transformer" +
 				" JSON config, 'matches' field is missing.")
 		}
 	}
